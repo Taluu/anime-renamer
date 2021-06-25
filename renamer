@@ -1,0 +1,104 @@
+#!/usr/bin/env php
+<?php declare(strict_types=1);
+namespace Renamer;
+
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
+use Symfony\Component\Console\Output\ConsoleOutput;
+
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+
+use Symfony\Component\Debug\Debug;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Console\Style\SymfonyStyle;
+
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
+
+set_time_limit(0);
+
+require __DIR__ . "/vendor/autoload.php";
+
+Debug::enable();
+
+$input = new ArgvInput;
+$command = new Command('renamer');
+$command->setDescription('Rename a bunch of anime files to conform plex\'s crap');
+
+$command
+    ->addArgument('path', InputArgument::REQUIRED, 'Path to scan')
+    ->addArgument('pattern', InputArgument::REQUIRED, 'Pattern to scan. There should be a `?P<episode>` at least in it.')
+    ->addArgument('season', InputArgument::REQUIRED, 'Season to add (will prepend S%dE%d')
+;
+
+$command
+    ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Do not do the actual renaming')
+    ->addOption('start-from', null, InputOption::VALUE_REQUIRED, 'Start the count from a certain number', 0)
+;
+
+$command->setCode(function (InputInterface $input, ConsoleOutput $output) {
+    $path = $input->getArgument('path');
+    $pattern = $input->getArgument('pattern');
+    $season = $input->getArgument('season');
+
+    $progressSection = $output->section();
+    $messagesSection = $output->section();
+
+    $io = new SymfonyStyle($input, $messagesSection);
+
+    if (!strpos($pattern, '?P<episode>')) {
+        throw new \RuntimeException('Must have a episode match');
+    }
+
+    $finder = new Finder;
+
+    $finder
+        ->files()
+        ->sortByName()
+    ;
+
+    $finder
+        ->in($path)
+        ->name("/{$pattern}/")
+        ->depth(0);
+    ;
+
+    $filesystem = new Filesystem;
+
+    $progress = new ProgressBar($progressSection);
+    $progress->start(count($finder));
+
+    $i = 0;
+
+    /** @var SplFileInfo $file */
+    foreach ($finder as $file) {
+        preg_match("{{$input->getArgument('pattern')}}", $file->getBasename(), $matches);
+
+        $episode = intval($matches['episode']) - intval($input->getOption('start-from'));
+        $name = "S{$season}E{$episode} (E{$matches['episode']}).{$file->getExtension()}";
+
+        if (!$input->getOption('dry-run')) {
+            $filesystem->rename($file->getPathname(), "{$file->getPath()}/{$name}");
+        }
+
+        if ($i > 0 && $i % 5 === 0) {
+            $messagesSection->clear(5);
+        }
+
+        ++$i;
+
+        $io->comment("Renaming {$file->getBasename()} to {$name}");
+        $progress->advance();
+    }
+
+    $progress->finish();
+});
+
+$application = new Application;
+$application->add($command);
+$application->setDefaultCommand($command->getName(), true);
+$application->run();

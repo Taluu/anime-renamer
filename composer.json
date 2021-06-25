@@ -1,0 +1,27 @@
+{
+    "require": {
+        "symfony/finder": "^5.3",
+        "symfony/console": "^5.3",
+        "symfony/debug": "^5.3",
+        "symfony/filesystem": "^5.3"
+    },
+    "require-dev": {
+        "symfony/var-dumper": "^5.3"
+    },
+    "replace": {
+        "symfony/polyfill-mbstring": "*",
+        "symfony/polyfill-ctype": "*"
+    },
+    "config": {
+        "platform": {
+            "php": "8.0.7"
+        }
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Baptiste Clavié",
+            "email": "clavie.b@gmail.com"
+        }
+    ]
+}
