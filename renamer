@@ -24,13 +24,35 @@ use function intval;
 
 require_once __DIR__ . "/vendor/autoload_runtime.php";
 
-return static function (Command $command) {
+return static function (Command $command): Command {
     set_time_limit(0);
 
     Debug::enable();
 
     $command->setName('anime-renamer');
     $command->setDescription('Rename a bunch of anime files to conform plex\'s crap');
+
+    $command->setHelp(
+        <<<'HELP'
+        This tool is used to batch rename files so that it follows a logic of
+        season and episodes in its title for a serie that is numbered in an
+        absolute pattern.
+
+        So if I have a serie that has 100+ episodes, with the following pattern :
+        `My Serie E97 - foo bar.mkv`, and it belongs in the second season, which
+        starts at episode 57, then I would use :
+
+        `./renamer --start-from 1 --substract-episode 57 <path to dirctory> "My Serie E(?P<episode>\d+)" 2
+        Which will rename all episodes starting the 57 in this form :
+        `S2E1 (E57)`, `S2E2 (E58)`. ... and so on.
+
+        You can also keep some info :
+
+        `./renamer --start-from 1 --substract-episode 57 <path to dirctory> "My Serie E(?P<episode>\d+) - (?P<name>.*)\.mkv" 2`
+        Which will rename all episodes starting the 57 in this form :
+        `S2E1 (E57) - foo bar baz`, `S2E2 (E58) - baz bar`. ... and so on.
+        HELP
+    );
 
     $command
         ->addArgument('path', InputArgument::REQUIRED, 'Path to scan')
