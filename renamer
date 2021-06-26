@@ -12,6 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\ErrorHandler\Debug;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -21,15 +22,14 @@ use Symfony\Component\Finder\SplFileInfo;
 
 use function intval;
 
-require __DIR__ . "/vendor/autoload.php";
+require_once __DIR__ . "/vendor/autoload_runtime.php";
 
-(static function () {
+return static function (Command $command) {
     set_time_limit(0);
 
     Debug::enable();
 
-    $input = new ArgvInput;
-    $command = new Command('renamer');
+    $command->setName('anime-renamer');
     $command->setDescription('Rename a bunch of anime files to conform plex\'s crap');
 
     $command
@@ -106,8 +106,5 @@ require __DIR__ . "/vendor/autoload.php";
         $progress->finish();
     });
 
-    $application = new Application;
-    $application->add($command);
-    $application->setDefaultCommand($command->getName(), true);
-    $application->run();
-})();
+    return $command;
+};
