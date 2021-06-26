@@ -84,6 +84,10 @@ $command->setCode(function (InputInterface $input, ConsoleOutput $output) {
         $episode = intval($matches['episode']) - intval($input->getOption('substract-episode')) + intval($input->getOption('start-from'));
         $name = "S{$season}E{$episode} (E{$matches['episode']}).{$file->getExtension()}";
 
+        if (isset($matches['name'])) {
+            $name = "S{$season}E{$episode} (E{$matches['episode']} - {$matches['name']}).{$file->getExtension()}";
+        }
+
         if (!$input->getOption('dry-run')) {
             $filesystem->rename($file->getPathname(), "{$file->getPath()}/{$name}");
         }
