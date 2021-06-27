@@ -30,8 +30,8 @@ return static function (Command $command): Command {
 
     Debug::enable();
 
-    $command->setName('anime-renamer');
-    $command->setDescription('Rename a bunch of anime files to conform plex\'s crap');
+    $command->setName('episode-renamer');
+    $command->setDescription('Rename a bunch of video files designated by seasons / episodes to conform plex\'s crap');
 
     $command->setHelp(
         <<<'HELP'
@@ -86,9 +86,7 @@ return static function (Command $command): Command {
         $finder
             ->files()
             ->sortByName()
-        ;
 
-        $finder
             ->in($path)
             ->name("/{$pattern}/")
             ->depth(0);
