@@ -25,6 +25,10 @@ use function intval;
 
 require_once __DIR__ . "/vendor/autoload_runtime.php";
 
+const WITH_NOTHING = 0b00;
+const WITH_OLD_EPISODE = 0b01;
+const WITH_NAME = 0b10;
+
 return static function (Command $command): Command {
     set_time_limit(0);
 
@@ -65,6 +69,7 @@ return static function (Command $command): Command {
         ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Do not do the actual renaming')
         ->addOption('substract-episode', null, InputOption::VALUE_REQUIRED, 'Substract this number to each episode number', 0)
         ->addOption('start-from', null, InputOption::VALUE_REQUIRED, 'Start from somewhere', 1)
+        ->addOption('no-keep-old', null, InputOption::VALUE_NONE, 'Should the name have the old episode number in it ? Keeping it is the default behavior')
     ;
 
     $command->setCode(function (InputInterface $input, ConsoleOutput $output) {
@@ -99,16 +104,36 @@ return static function (Command $command): Command {
 
         $i = 0;
 
+        $templates = [
+            WITH_NOTHING => 'S{SEASON}E{EPISODE}.{EXTENSION}',
+            WITH_OLD_EPISODE => 'S{SEASON}E{EPISODE} (E{OLD-EPISODE}).{EXTENSION}',
+            WITH_NAME => 'S{SEASON}E{EPISODE} - {NAME}.{EXTENSION}',
+            WITH_OLD_EPISODE|WITH_NAME => 'S{SEASON}E{EPISODE} (E{OLD-EPISODE} - {NAME}).{EXTENSION}',
+        ];
+
+        $template = $input->getOption('no-keep-old') ? WITH_NOTHING : WITH_OLD_EPISODE;
+
         /** @var SplFileInfo $file */
         foreach ($finder as $file) {
             preg_match("{{$input->getArgument('pattern')}}", $file->getBasename(), $matches);
 
             $episode = intval($matches['episode']) - intval($input->getOption('substract-episode')) + intval($input->getOption('start-from'));
-            $name = "S{$season}E{$episode} (E{$matches['episode']}).{$file->getExtension()}";
+            $name = $templates[$template];
+
+            $variables = [
+                '{SEASON}' => $season,
+                '{EPISODE}' => $episode,
+                '{OLD-EPISODE}' => $matches['episode'],
+                '{NAME}' => $matches['name'] ?? '',
+                '{EXTENSION}' => $file->getExtension(),
+            ];
 
             if (isset($matches['name'])) {
-                $name = "S{$season}E{$episode} (E{$matches['episode']} - {$matches['name']}).{$file->getExtension()}";
+                $name = $templates[$template | WITH_NAME];
+                $variales['{NAME}'] = $matches['name'];
             }
+
+            $name = strtr($name, $variables);
 
             if (!$input->getOption('dry-run')) {
                 $filesystem->rename($file->getPathname(), "{$file->getPath()}/{$name}");
