@@ -22,6 +22,7 @@ use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
 use function intval;
+use function count;
 
 require_once __DIR__ . "/vendor/autoload_runtime.php";
 
@@ -97,10 +98,13 @@ return static function (Command $command): Command {
             ->depth(0);
         ;
 
+        $count = count($finder);
+        $number = strlen((string) $count);
+
         $filesystem = new Filesystem;
 
         $progress = new ProgressBar($progressSection);
-        $progress->start(count($finder));
+        $progress->start($count);
 
         $i = 0;
 
@@ -122,7 +126,7 @@ return static function (Command $command): Command {
 
             $variables = [
                 '{SEASON}' => $season,
-                '{EPISODE}' => $episode,
+                '{EPISODE}' => sprintf("%0{$number}d", $episode),
                 '{OLD-EPISODE}' => $matches['episode'],
                 '{NAME}' => $matches['name'] ?? '',
                 '{EXTENSION}' => $file->getExtension(),
